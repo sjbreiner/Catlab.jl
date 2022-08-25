@@ -47,8 +47,9 @@ add_generators!(pres, (f,g))
   first_name::Hom(Employee, Str)
   last_name::Hom(Employee, Str)
   manager::Hom(Employee, Employee)
-  works_in::Hom(Employee, Department)
-  secretary::Hom(Department, Employee)
+  # Alternative syntax
+  works_in::Employee → Department
+  secretary::Department → Employee
   
   # Defined concepts.
   second_level_manager := compose(manager, manager)
@@ -93,8 +94,8 @@ secretary = Hom(:secretary, Department, Employee)
 @present C(FreeSymmetricMonoidalCategory) begin
   A::Ob
   B::Ob
-  f::Hom(otimes(A,B),otimes(B,A))
-  scalar::Hom(munit(),munit()) # Nullary case.
+  f::Hom(A⊗B,B⊗A)
+  scalar::munit() → munit() # Nullary case.
 end
 A, B = Ob(FreeSymmetricMonoidalCategory, :A, :B)
 I = munit(FreeSymmetricMonoidalCategory.Ob)

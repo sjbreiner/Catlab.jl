@@ -11,6 +11,7 @@ include("GraphvizCategories.jl")
 include("ComposeWiringDiagrams.jl")
 include("TikZ.jl")
 include("TikZWiringDiagrams.jl")
+include("PrettyPrinting.jl")
 
 @reexport using .WiringDiagramLayouts
 @reexport using .GraphvizGraphs
