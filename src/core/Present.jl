@@ -169,10 +169,16 @@ end
 function add_to_presentation(pres, block)
   pres = copy(pres)
   @match strip_lines(block) begin
-    Expr(:block, lines...) =>
+    Expr(:block, lines...) => begin
+      aliases = merge(
+        Dict(:(->) => :Hom,:(=>) => :Hom2),
+        GAT.theory(pres.syntax.theory()).aliases      
+      )
       for line in lines
+        line = dealias(line,aliases)
         eval_stmt!(pres, line)
       end
+    end
     _ => error("Must pass in a block")
   end
   pres
@@ -188,7 +194,7 @@ end
 
 function eval_stmt!(pres::Presentation, stmt::Expr)
   @match stmt begin
-    Expr(:(::), name::Symbol, type_expr) =>
+    Expr(:(::), name::Symbol, type_expr) => 
       construct_generator!(pres, name, parse_type_expr(type_expr)...)
     Expr(:(::), Expr(:tuple, names...), type_expr) =>
       construct_generators!(pres, [names...], parse_type_expr(type_expr)...)
@@ -198,8 +204,32 @@ function eval_stmt!(pres::Presentation, stmt::Expr)
       add_definition!(pres, name, make_term(pres, def_expr))
     Expr(:call, :(==), lhs, rhs) =>
       add_equation!(pres, make_term(pres, lhs), make_term(pres, rhs))
+    _ => @warn "Unknown expression $stmt"
   end
 end
+
+""" Separate name from domain object in arrow types """
+parse_name_dom(expr::Expr) = begin
+  val = @match expr begin
+    Expr(:(::),names,dom_part) => (names,dom_part)
+    _ => @warn "Unknown expression $expr"
+  end
+  val
+end
+
+dealias(expr::Expr,aliases::AbstractDict) = begin
+  @match expr begin
+    # reparse `(names::X) → Y` as names::Hom(X,Y), etc. 
+    Expr(:call,sym,Expr(:(::),names,X_expr),Y_expr) => begin
+      sym = haskey(aliases,sym) ? aliases[sym] : sym
+      Expr(:(::),names,Expr(:call,sym,dealias(X_expr,aliases),dealias(Y_expr,aliases)))
+    end
+    Expr(head,rest...) => begin
+      Expr(head,dealias.(rest,Ref(aliases))...)
+    end
+  end
+end
+dealias(x,::AbstractDict) = x
 
 # Presentation macro
 ####################
